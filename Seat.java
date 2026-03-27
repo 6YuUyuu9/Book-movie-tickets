@@ -3,10 +3,16 @@ public class Seat {
     private String seatId;
     private boolean isBook;
 
-    // Constructor ตอนสร้างที่นั่งใหม่ ให้ถือว่ายังไม่มีคนจอง (false)
+    // Constructor ตัวที่ 1: รับแค่ชื่อที่นั่ง (กำหนดให้ว่างอัตโนมัติ)
     public Seat(String id) {
         this.seatId = id;
         this.isBook = false; 
+    }
+
+    // Constructor ตัวที่ 2: รับทั้งชื่อที่นั่งและสถานะ (เพิ่มตัวนี้เข้ามาเพื่อแก้ Error)
+    public Seat(String id, boolean isBook) {
+        this.seatId = id;
+        this.isBook = isBook;
     }
 
     // Getter และ Setter
