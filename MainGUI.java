@@ -82,18 +82,56 @@ public class MainGUI extends JFrame {
             JTextField nameField = new JTextField();
             JTextField startField = new JTextField("14:00");
             JTextField endField = new JTextField("16:00");
-            Object[] message = { "Movie Name:", nameField, "Start (HH:mm):", startField, "End (HH:mm):", endField };
+            Object[] message = {"Movie Name:", nameField, "Start (HH:mm):", startField, "End (HH:mm):", endField};
 
-            if (JOptionPane.showConfirmDialog(this, message, "Add Show",
-                    JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            if (JOptionPane.showConfirmDialog(this, message, "Add Show", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
                 try {
-                    Show s = new Show(showList.size() + 1, new Date(), LocalTime.parse(startField.getText()),
-                            LocalTime.parse(endField.getText()), new Movie(showList.size() + 1, nameField.getText()));
+                    String name = nameField.getText().trim();
+                    LocalTime newStart = LocalTime.parse(startField.getText());
+                    LocalTime newEnd = LocalTime.parse(endField.getText());
+
+                    if (name.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Please enter a movie name.");
+                        return;
+                    }
+                    
+                    if (!newEnd.isAfter(newStart)) {
+                        JOptionPane.showMessageDialog(this, "End time must be after start time!");
+                        return;
+                    }
+
+                    // --- ส่วนที่ปรับปรุง: เช็กเวลาทับซ้อน (Overlap Check) ---
+                    boolean isOverlapping = false;
+                    String conflictingMovie = "";
+
+                    for (Show existingShow : showList) {
+                        LocalTime exStart = existingShow.getStartTime();
+                        LocalTime exEnd = existingShow.getEndTime();
+
+                        // สูตรเช็กการทับซ้อน: (StartA < EndB) AND (EndA > StartB)
+                        if (newStart.isBefore(exEnd) && newEnd.isAfter(exStart)) {
+                            isOverlapping = true;
+                            conflictingMovie = existingShow.getMovie().getMovieName() + 
+                                               " (" + exStart + " - " + exEnd + ")";
+                            break;
+                        }
+                    }
+
+                    if (isOverlapping) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Time Conflict! This slot is already taken by:\n" + conflictingMovie, 
+                            "Scheduling Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                        return; 
+                    }
+                    // -------------------------------------------------------
+
+                    Show s = new Show(showList.size() + 1, new Date(), newStart, newEnd, new Movie(showList.size() + 1, name));
                     showList.add(s);
-                    showModel.addElement(String.format("%-18s | %s - %s", s.getMovie().getMovieName(), s.getStartTime(),
-                            s.getEndTime()));
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Format Error!");
+                    showModel.addElement(String.format("%-18s | %s - %s", s.getMovie().getMovieName(), s.getStartTime(), s.getEndTime()));
+                    
+                } catch (Exception ex) { 
+                    JOptionPane.showMessageDialog(this, "Format Error! Please use HH:mm"); 
                 }
             }
         });
