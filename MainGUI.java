@@ -139,30 +139,32 @@ public class MainGUI extends JFrame {
         btnBook.addActionListener(e -> handleBooking());
 
         btnSearch.addActionListener(e -> {
+            // รับ Ticket ID จากผู้ใช้
             String searchId = JOptionPane.showInputDialog(this, "Enter Ticket ID:");
             if (searchId == null)
                 return;
 
-            // ค้นหาและรวบรวมที่นั่งทั้งหมดที่มี Booking ID เดียวกัน
-            String result = "";
-            ArrayList<String> seatsFound = new ArrayList<>();
-            Book firstMatch = null;
-
+            // หา Book แรกที่ตรงกับ searchId
+            Book found = null;
             for (Book b : bookingHistory) {
                 if (String.valueOf(b.getBookId()).equals(searchId)) {
-                    if (firstMatch == null)
-                        firstMatch = b;
-                    seatsFound.add(b.getSeatId().getSeatId());
+                    found = b;
+                    break; // เจอแล้วหยุดเลย ไม่ต้องวนต่อ
                 }
             }
 
-            if (firstMatch != null) {
-                result = "--- BOOKING DETAILS ---\n" +
+            if (found != null) {
+                // ดึงจำนวนที่นั่งและราคารวมจาก seatCount และ price ที่มีอยู่แล้วใน Book
+                int totalSeats = found.getSeatCount();
+                int totalPrice = found.getPrice() * totalSeats;
+
+                String result = "--- BOOKING DETAILS ---\n" +
                         "Ticket ID: " + searchId + "\n" +
-                        "Movie: " + firstMatch.getShowtime().getMovie().getMovieName() + "\n" +
-                        "Time: " + firstMatch.getShowtime().getStartTime() + "\n" +
-                        "Seats: " + String.join(", ", seatsFound) + "\n" +
-                        "Total Paid: " + (firstMatch.getPrice() * seatsFound.size()) + " THB";
+                        "Movie: " + found.getShowtime().getMovie().getMovieName() + "\n" +
+                        "Time: " + found.getShowtime().getStartTime() + "\n" +
+                        "Seats: " + found.getSeatId().getSeatId() + "\n" +
+                        "Total Paid: " + totalPrice + " THB";
+
                 JOptionPane.showMessageDialog(this, result, "Search Result", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this, "ID not found.");
