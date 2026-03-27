@@ -35,7 +35,7 @@ public class Show {
 
     // Method ภายในสำหรับสร้างที่นั่งเริ่มต้น [cite: 16-20]
     private void generateDefaultSeats() {
-        String[] rows = { "A", "B" };
+        String[] rows = { "A", "B", "C", "D" };
         for (String row : rows) {
             for (int i = 1; i <= 5; i++) {
                 this.seats.add(new Seat(row + i, false));

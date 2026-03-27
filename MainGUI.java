@@ -1,191 +1,224 @@
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.*;
 import java.awt.*;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 public class MainGUI extends JFrame {
     private ArrayList<Show> showList = new ArrayList<>();
     private DefaultListModel<String> showModel = new DefaultListModel<>();
     private JList<String> showJList = new JList<>(showModel);
-    private JTextArea statusLog = new JTextArea(5, 10);
     private ArrayList<Book> bookingHistory = new ArrayList<>();
 
+    private final Color COLOR_NAVY = new Color(44, 62, 80);
+    private final Color COLOR_PRIMARY = new Color(52, 152, 219);
+    private final Color COLOR_BG = new Color(248, 249, 250);
+
     public MainGUI() {
-        // --- Window Settings ---
-        setTitle("CineReserve | Movie Booking System");
-        setSize(800, 500);
+        setTitle("Movie Booking System");
+        setSize(1100, 650);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        getContentPane().setBackground(new Color(245, 245, 245));
+        setLayout(new BorderLayout());
 
-        // --- Main Layout ---
-        setLayout(new BorderLayout(10, 10));
-        ((JPanel) getContentPane()).setBorder(new EmptyBorder(15, 15, 15, 15));
+        // --- 1. NAVBAR ---
+        JPanel navBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 12));
+        navBar.setBackground(COLOR_NAVY);
+        
+        JButton btnAdd = createNavButton("Add New Show", new Color(46, 204, 113));
+        JButton btnBook = createNavButton("Book Tickets", COLOR_PRIMARY);
+        JButton btnSearch = createNavButton("Search Ticket ID", new Color(149, 165, 166));
 
-        // 1. Header
-        JLabel lblTitle = new JLabel("MOVIE TICKETING SYSTEM", JLabel.LEFT);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
-        lblTitle.setForeground(new Color(44, 62, 80));
-        add(lblTitle, BorderLayout.NORTH);
+        navBar.add(btnAdd);
+        navBar.add(btnBook);
+        navBar.add(btnSearch);
+        add(navBar, BorderLayout.NORTH);
 
-        // 2. Center Panel (Showtime List)
-        JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
-        centerPanel.setOpaque(false);
-        JLabel lblSubtitle = new JLabel("Available Showtimes");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        centerPanel.add(lblSubtitle, BorderLayout.NORTH);
+        // --- 2. MAIN CONTENT ---
+        JPanel mainContent = new JPanel(new GridLayout(1, 2, 30, 0));
+        mainContent.setBorder(new EmptyBorder(25, 25, 25, 25));
+        mainContent.setBackground(COLOR_BG);
 
-        showJList.setFont(new Font("Consolas", Font.PLAIN, 14));
-        JScrollPane listScroll = new JScrollPane(showJList);
-        centerPanel.add(listScroll, BorderLayout.CENTER);
-        add(centerPanel, BorderLayout.CENTER);
+        JPanel listPanel = new JPanel(new BorderLayout(0, 10));
+        listPanel.setOpaque(false);
+        JLabel lblHeader = new JLabel("AVAILABLE SHOWTIMES");
+        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        listPanel.add(lblHeader, BorderLayout.NORTH);
 
-        // 3. Right Panel (Actions & Status)
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
-        rightPanel.setPreferredSize(new Dimension(250, 0));
-        rightPanel.setOpaque(false);
+        showJList.setFont(new Font("Monospaced", Font.BOLD, 14));
+        showJList.setSelectionBackground(COLOR_PRIMARY);
+        showJList.setSelectionForeground(Color.WHITE);
+        showJList.setFixedCellHeight(45);
+        showJList.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) repaint(); });
+        
+        JScrollPane scrollPane = new JScrollPane(showJList);
+        scrollPane.setBorder(new LineBorder(new Color(220, 220, 220), 1));
+        listPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JButton btnAdd = createStyledButton("Add New Show", new Color(46, 204, 113));
-        JButton btnBook = createStyledButton("Book Selected Seat", new Color(52, 152, 219));
-        JButton btnSearch = createStyledButton("Search by ID", new Color(52, 73, 94));
+        JPanel seatMapPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                drawSeatMap(g);
+            }
+        };
+        seatMapPanel.setBackground(Color.WHITE);
+        seatMapPanel.setBorder(BorderFactory.createTitledBorder(
+            new LineBorder(new Color(200, 200, 200), 1), " Seat Map ", 
+            TitledBorder.CENTER, TitledBorder.TOP, new Font("Segoe UI", Font.BOLD, 12)
+        ));
 
-        statusLog.setEditable(false);
-        statusLog.setBackground(new Color(230, 230, 230));
-        statusLog.setFont(new Font("Tahoma", Font.PLAIN, 11));
-        statusLog.setBorder(BorderFactory.createTitledBorder("System Status"));
+        mainContent.add(listPanel);
+        mainContent.add(seatMapPanel);
+        add(mainContent, BorderLayout.CENTER);
 
-        rightPanel.add(btnAdd);
-        rightPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        rightPanel.add(btnBook);
-        rightPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        rightPanel.add(btnSearch);
-        rightPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        rightPanel.add(new JScrollPane(statusLog));
-        add(rightPanel, BorderLayout.EAST);
+        // --- 3. ACTIONS ---
 
-        // --- Button Events ---
-
-        // 1. Add Movie with Auto-Generated Time
         btnAdd.addActionListener(e -> {
-            String movieName = JOptionPane.showInputDialog(this, "Enter Movie Name:");
-            if (movieName != null && !movieName.trim().isEmpty()) {
-                int randomHour = (int) (Math.random() * 12) + 10;
-                int randomMinute = (Math.random() > 0.5) ? 30 : 0;
-                LocalTime startTime = LocalTime.of(randomHour, randomMinute);
-                LocalTime endTime = startTime.plusMinutes(120);
+            JTextField nameField = new JTextField();
+            JTextField startField = new JTextField("14:00");
+            JTextField endField = new JTextField("16:00");
+            Object[] message = {"Movie Name:", nameField, "Start (HH:mm):", startField, "End (HH:mm):", endField};
 
-                int generatedId = showList.size() + 101;
-                Movie movie = new Movie(generatedId, movieName);
-                Show newShow = new Show(generatedId, new Date(), startTime, endTime, movie);
-
-                showList.add(newShow);
-                showModel.addElement(movie.getMovieName() + " | " + startTime + " - " + endTime);
-                statusLog.append("Auto-Gen: Added " + movie.getMovieName() + " [" + startTime + "]\n");
-            }
-        });
-
-        // 2. Book Seat with Details Confirmation
-        btnBook.addActionListener(e -> {
-            int selectedIndex = showJList.getSelectedIndex();
-            if (selectedIndex != -1) {
-                Show selectedShow = showList.get(selectedIndex);
-
-                // 1. รับรหัสที่นั่งจากผู้ใช้ (เช่น A1, A2, B1)
-                String seatIdInput = JOptionPane.showInputDialog(this, "Enter Seat ID (e.g., A1, A2, B1):", "A1");
-
-                if (seatIdInput != null && !seatIdInput.trim().isEmpty()) {
-                    // 2. ค้นหาที่นั่งใน List ของ Show นั้นๆ
-                    Seat targetSeat = null;
-                    for (Seat s : selectedShow.getSeats()) {
-                        if (s.getSeatId().equalsIgnoreCase(seatIdInput.trim())) {
-                            targetSeat = s;
-                            break;
-                        }
-                    }
-
-                    // 3. ถ้าไม่พบที่นั่ง ให้สร้างใหม่ (หรือแจ้งเตือน)
-                    if (targetSeat == null) {
-                        targetSeat = new Seat(seatIdInput.trim().toUpperCase());
-                        selectedShow.getSeats().add(targetSeat);
-                    }
-
-                    // 4. ตรวจสอบสถานะการจอง
-                    if (!targetSeat.isBooked()) {
-                        Book booking = new Book();
-                        int newId = bookingHistory.size() + 1001;
-                        booking.setBookId(newId);
-                        booking.setPrice(200);
-
-                        // สรุปข้อมูลยืนยัน
-                        String details = "--- Booking Details ---\n" +
-                                "Ticket ID: " + newId + "\n" +
-                                "Movie: " + selectedShow.getMovie().getMovieName() + "\n" +
-                                "Seat: " + targetSeat.getSeatId() + "\n" +
-                                "Confirm booking?";
-
-                        int confirm = JOptionPane.showConfirmDialog(this, details, "Confirm",
-                                JOptionPane.YES_NO_OPTION);
-                        if (confirm == JOptionPane.YES_OPTION) {
-                            booking.createBooking(selectedShow, targetSeat);
-                            bookingHistory.add(booking);
-                            statusLog
-                                    .append("System: Seat " + targetSeat.getSeatId() + " booked (ID: " + newId + ")\n");
-                        }
-                    } else {
-                        JOptionPane.showMessageDialog(this,
-                                "Sorry, Seat " + targetSeat.getSeatId() + " is already taken!");
-                    }
-                }
-            } else {
-                JOptionPane.showMessageDialog(this, "Please select a showtime first.");
-            }
-        });
-
-        // 3. Search Booking by Ticket ID
-        btnSearch.addActionListener(e -> {
-            String searchIdStr = JOptionPane.showInputDialog(this, "Enter Ticket ID to Search:");
-            if (searchIdStr != null && !searchIdStr.trim().isEmpty()) {
+            if (JOptionPane.showConfirmDialog(this, message, "Add Show", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
                 try {
-                    int searchId = Integer.parseInt(searchIdStr);
-                    boolean found = false;
-                    for (Book b : bookingHistory) {
-                        if (b.getBookId() == searchId) {
-                            statusLog.append("\n--- Found Booking ID: " + searchId + " ---\n");
-                            statusLog.append("Movie: " + b.getShowtime().getMovie().getMovieName() + "\n");
-                            statusLog.append("Seat: " + b.getSeatId().getSeatId() + "\n");
-                            statusLog.append("Price: " + b.getPrice() + " THB\n");
-                            statusLog.append("----------------------------\n");
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found)
-                        JOptionPane.showMessageDialog(this, "Ticket ID not found!");
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Please enter a valid numeric ID.");
+                    Show s = new Show(showList.size()+1, new Date(), LocalTime.parse(startField.getText()), LocalTime.parse(endField.getText()), new Movie(showList.size()+1, nameField.getText()));
+                    showList.add(s);
+                    showModel.addElement(String.format("%-18s | %s - %s", s.getMovie().getMovieName(), s.getStartTime(), s.getEndTime()));
+                } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Format Error!"); }
+            }
+        });
+
+        btnBook.addActionListener(e -> handleBooking());
+
+        btnSearch.addActionListener(e -> {
+            String searchId = JOptionPane.showInputDialog(this, "Enter Ticket ID:");
+            if (searchId == null) return;
+
+            // ค้นหาและรวบรวมที่นั่งทั้งหมดที่มี Booking ID เดียวกัน
+            String result = "";
+            ArrayList<String> seatsFound = new ArrayList<>();
+            Book firstMatch = null;
+
+            for (Book b : bookingHistory) {
+                if (String.valueOf(b.getBookId()).equals(searchId)) {
+                    if (firstMatch == null) firstMatch = b;
+                    seatsFound.add(b.getSeatId().getSeatId());
                 }
+            }
+
+            if (firstMatch != null) {
+                result = "--- BOOKING DETAILS ---\n" +
+                         "Ticket ID: " + searchId + "\n" +
+                         "Movie: " + firstMatch.getShowtime().getMovie().getMovieName() + "\n" +
+                         "Time: " + firstMatch.getShowtime().getStartTime() + "\n" +
+                         "Seats: " + String.join(", ", seatsFound) + "\n" +
+                         "Total Paid: " + (firstMatch.getPrice() * seatsFound.size()) + " THB";
+                JOptionPane.showMessageDialog(this, result, "Search Result", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "ID not found.");
             }
         });
 
         setVisible(true);
     }
 
-    private JButton createStyledButton(String text, Color color) {
+    private void handleBooking() {
+        int idx = showJList.getSelectedIndex();
+        if (idx == -1) { JOptionPane.showMessageDialog(this, "Select a show!"); return; }
+        
+        Show selectedShow = showList.get(idx);
+        int price = 200; 
+
+        String countStr = JOptionPane.showInputDialog(this, "How many seats?");
+        if (countStr == null || countStr.isEmpty()) return;
+
+        try {
+            int count = Integer.parseInt(countStr);
+            ArrayList<Seat> selectedSeats = new ArrayList<>();
+            int currentBookingId = bookingHistory.size() + 1001;
+
+            for (int i = 1; i <= count; i++) {
+                String sId = JOptionPane.showInputDialog(this, "Enter Seat ID #" + i + " (e.g. A1):").toUpperCase().trim();
+                Seat seat = selectedShow.getSeats().stream().filter(s -> s.getSeatId().equals(sId)).findFirst().orElse(null);
+                
+                if (seat == null) { seat = new Seat(sId); selectedShow.getSeats().add(seat); }
+                if (seat.isBooked()) { JOptionPane.showMessageDialog(this, "Seat " + sId + " taken!"); return; }
+                selectedSeats.add(seat);
+            }
+
+            String seatListStr = selectedSeats.stream().map(Seat::getSeatId).collect(Collectors.joining(", "));
+            String summary = "--- CONFIRM BOOKING ---\n" +
+                             "Movie: " + selectedShow.getMovie().getMovieName() + "\n" +
+                             "Seats: " + seatListStr + "\n" +
+                             "Total Price: " + (price * count) + " THB\n\nConfirm Payment?";
+
+            if (JOptionPane.showConfirmDialog(this, summary, "Payment", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                for (Seat s : selectedSeats) {
+                    Book b = new Book();
+                    b.setBookId(currentBookingId); // ใช้ ID เดียวกันสำหรับกลุ่มที่นั่งนี้
+                    b.setPrice(price);
+                    b.createBooking(selectedShow, s);
+                    bookingHistory.add(b);
+                }
+                
+                // แสดงข้อมูลทั้งหมดหลังจองเสร็จ
+                String finalReceipt = "--- BOOKING SUCCESS ---\n" +
+                                      "Ticket ID: " + currentBookingId + "\n" +
+                                      "Movie: " + selectedShow.getMovie().getMovieName() + "\n" +
+                                      "Seats: " + seatListStr + "\n" +
+                                      "Total: " + (price * count) + " THB";
+                JOptionPane.showMessageDialog(this, finalReceipt);
+                repaint(); 
+            }
+        } catch (Exception ex) { }
+    }
+
+    private void drawSeatMap(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        int idx = showJList.getSelectedIndex();
+        if (idx == -1) return;
+
+        Show currentShow = showList.get(idx);
+        int xStart = 60, yStart = 80, size = 48, gap = 15;
+        String[] rows = {"A", "B", "C", "D"};
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 1; c <= 5; c++) {
+                String sName = rows[r] + c;
+                int x = xStart + (c-1)*(size+gap), y = yStart + r*(size+gap);
+                boolean taken = currentShow.getSeats().stream().anyMatch(s -> s.getSeatId().equals(sName) && s.isBooked());
+
+                g2.setColor(taken ? new Color(231, 76, 60) : new Color(46, 204, 113));
+                g2.fillRoundRect(x, y, size, size, 10, 10);
+                g2.setColor(Color.WHITE);
+                if (taken) {
+                    g2.setStroke(new BasicStroke(2));
+                    g2.drawLine(x+15, y+15, x+size-15, y+size-15); g2.drawLine(x+size-15, y+15, x+15, y+size-15);
+                } else {
+                    g2.drawOval(x+12, y+12, 24, 24);
+                }
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                g2.drawString(sName, x+15, y+30);
+            }
+        }
+    }
+
+    private JButton createNavButton(String text, Color color) {
         JButton btn = new JButton(text);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        btn.setBackground(color);
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setBackground(color); btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setBorder(new EmptyBorder(10, 20, 10, 20));
+        btn.setBorderPainted(false); btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         return btn;
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MainGUI());
+    public static void main(String[] args) { 
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
+        SwingUtilities.invokeLater(MainGUI::new); 
     }
 }
