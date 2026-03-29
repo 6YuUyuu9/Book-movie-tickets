@@ -1,17 +1,15 @@
-import java.util.Date; // ต้อง import เพื่อใช้งานเรื่องวันที่
+import java.util.Date; 
 
 public class Schedule {
-    // กำหนดตัวแปรเป็น private ตาม Diagram
-    private Date date;
-    private Show showtime; // อ้างอิงถึง Class Show
 
-    // Constructor
+    private Date date;
+    private Show showtime; 
+
     public Schedule(Date d, Show s) {
         this.date = d;
         this.showtime = s;
     }
 
-    // Getter และ Setter
     public Date getDate() { 
         return date; 
     }

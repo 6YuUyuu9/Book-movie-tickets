@@ -76,8 +76,6 @@ public class MainGUI extends JFrame {
         mainContent.add(seatMapPanel);
         add(mainContent, BorderLayout.CENTER);
 
-        // --- 3. ACTIONS ---
-
         btnAdd.addActionListener(e -> {
             JTextField nameField = new JTextField();
             JTextField startField = new JTextField("14:00");
@@ -100,7 +98,6 @@ public class MainGUI extends JFrame {
                         return;
                     }
 
-                    // --- ส่วนที่ปรับปรุง: เช็กเวลาทับซ้อน (Overlap Check) ---
                     boolean isOverlapping = false;
                     String conflictingMovie = "";
 
@@ -108,7 +105,6 @@ public class MainGUI extends JFrame {
                         LocalTime exStart = existingShow.getStartTime();
                         LocalTime exEnd = existingShow.getEndTime();
 
-                        // สูตรเช็กการทับซ้อน: (StartA < EndB) AND (EndA > StartB)
                         if (newStart.isBefore(exEnd) && newEnd.isAfter(exStart)) {
                             isOverlapping = true;
                             conflictingMovie = existingShow.getMovie().getMovieName() + 
@@ -124,7 +120,6 @@ public class MainGUI extends JFrame {
                             JOptionPane.ERROR_MESSAGE);
                         return; 
                     }
-                    // -------------------------------------------------------
 
                     Show s = new Show(showList.size() + 1, new Date(), newStart, newEnd, new Movie(showList.size() + 1, name));
                     showList.add(s);
@@ -139,22 +134,20 @@ public class MainGUI extends JFrame {
         btnBook.addActionListener(e -> handleBooking());
 
         btnSearch.addActionListener(e -> {
-            // รับ Ticket ID จากผู้ใช้
+  
             String searchId = JOptionPane.showInputDialog(this, "Enter Ticket ID:");
             if (searchId == null)
                 return;
 
-            // หา Book แรกที่ตรงกับ searchId
             Book found = null;
             for (Book b : bookingHistory) {
                 if (String.valueOf(b.getBookId()).equals(searchId)) {
                     found = b;
-                    break; // เจอแล้วหยุดเลย ไม่ต้องวนต่อ
+                    break; 
                 }
             }
 
             if (found != null) {
-                // ดึงจำนวนที่นั่งและราคารวมจาก seatCount และ price ที่มีอยู่แล้วใน Book
                 int totalSeats = found.getSeatCount();
                 int totalPrice = found.getPrice() * totalSeats;
 
@@ -175,13 +168,11 @@ public class MainGUI extends JFrame {
     }
 
     private void handleBooking() {
-        // 1. ตรวจสอบว่ามีรอบหนังในระบบหรือยัง
         if (showList.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No shows available. Please add a show first!");
             return;
         }
 
-        // 2. สร้าง Dropdown สำหรับเลือกหนัง
         String[] movieOptions = new String[showList.size()];
         for (int i = 0; i < showList.size(); i++) {
             Show s = showList.get(i);
@@ -198,12 +189,10 @@ public class MainGUI extends JFrame {
             int selectedIdx = movieSelect.getSelectedIndex();
             Show selectedShow = showList.get(selectedIdx);
 
-            // อัปเดต GUI ฝั่งซ้ายให้ตรงกับที่เลือกใน Pop-up
             showJList.setSelectedIndex(selectedIdx);
 
             int price = 200;
 
-            // 3. ถามจำนวนที่นั่ง
             String countStr = JOptionPane.showInputDialog(this,
                     "How many seats for " + selectedShow.getMovie().getMovieName() + "?");
             if (countStr == null || countStr.isEmpty())
@@ -213,10 +202,8 @@ public class MainGUI extends JFrame {
                 int count = Integer.parseInt(countStr);
                 ArrayList<Seat> selectedSeats = new ArrayList<>();
 
-                // --- สร้าง Ticket ID ไว้รอแสดงใน Payment ---
                 int currentBookingId = bookingHistory.size() + 1001;
 
-                // 4. วนลูปกรอกรหัสที่นั่ง
                 for (int i = 1; i <= count; i++) {
                     String sId = JOptionPane.showInputDialog(this, "Enter Seat ID #" + i + " (e.g. A1):").toUpperCase()
                             .trim();
@@ -237,7 +224,6 @@ public class MainGUI extends JFrame {
                     selectedSeats.add(seat);
                 }
 
-                // 5. สรุปข้อมูล (เพิ่ม Ticket ID เข้าไปที่นี่)
                 String seatListStr = selectedSeats.stream().map(Seat::getSeatId).collect(Collectors.joining(", "));
                 String summary = "--- CONFIRM PAYMENT ---\n" +
                         "Ticket ID   : " + currentBookingId + "\n" + // แสดง ID ตรงนี้
@@ -256,7 +242,6 @@ public class MainGUI extends JFrame {
                         bookingHistory.add(b);
                     }
 
-                    // แสดงใบเสร็จสุดท้ายอีกรอบหลังจ่ายเงินสำเร็จ
                     String finalReceipt = "--- PAYMENT SUCCESSFUL ---\n" +
                             "Ticket ID : " + currentBookingId + "\n" +
                             "Movie     : " + selectedShow.getMovie().getMovieName() + "\n" +

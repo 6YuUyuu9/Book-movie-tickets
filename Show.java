@@ -4,15 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Show {
-    // Attributes จากเอกสาร [cite: 11, 21]
-    private int showId; // [cite: 21]
-    private Date date; // [cite: 21]
-    private LocalTime startTime; // [cite: 21]
-    private LocalTime endTime; // [cite: 21]
-    private Movie movie; // [cite: 21]
-    private List<Seat> seats; // [cite: 21]
+    private int showId;
+    private Date date; 
+    private LocalTime startTime; 
+    private LocalTime endTime; 
+    private Movie movie; 
+    private List<Seat> seats; 
 
-    // --- Constructor แบบที่ 1: รับค่าครบทุกอย่าง ---
     public Show(int showId, Date date, LocalTime startTime, LocalTime endTime, Movie movie) {
         this.showId = showId;
         this.date = date;
@@ -20,20 +18,17 @@ public class Show {
         this.endTime = endTime;
         this.movie = movie;
         this.seats = new ArrayList<>();
-        generateDefaultSeats(); // สร้างที่นั่งเริ่มต้น
+        generateDefaultSeats(); 
     }
 
-    // --- Constructor แบบที่ 2: รับเฉพาะ ID และ Movie (ใช้กรณีตั้งค่าเวลาภายหลัง)
-    // ---
     public Show(int showId, Movie movie) {
         this.showId = showId;
         this.movie = movie;
-        this.date = new Date(); // วันที่ปัจจุบันเป็นค่าเริ่มต้น
+        this.date = new Date(); 
         this.seats = new ArrayList<>();
         generateDefaultSeats();
     }
 
-    // Method ภายในสำหรับสร้างที่นั่งเริ่มต้น [cite: 16-20]
     private void generateDefaultSeats() {
         String[] rows = { "A", "B", "C", "D" };
         for (String row : rows) {
@@ -42,8 +37,6 @@ public class Show {
             }
         }
     }
-
-    // --- Getter & Setter สำหรับตัวแปรทุกตัว ---
 
     public int getShowId() {
         return showId;
